@@ -15,18 +15,11 @@ function send(data) {
 
 }
 
-function stopTimer() {
+function getDuration() {
 
-  if (!currentTab || !startTime) return;
+  if (!startTime) return 0;
 
-  send({
-    type: "PAGE_TIME",
-    title: currentTab.title,
-    url: currentTab.url,
-    durationMs: Date.now() - startTime
-  });
-
-  startTime = null;
+  return Date.now() - startTime;
 
 }
 
@@ -36,7 +29,13 @@ function startTimer() {
 
 }
 
-// Start tracking currently active tab on extension load
+function resetTimer() {
+
+  startTime = Date.now();
+
+}
+
+// Initial active tab
 chrome.tabs.query({
   active: true,
   currentWindow: true
@@ -50,7 +49,7 @@ chrome.tabs.query({
   };
 
   send({
-    type: "PAGE_CHANGED",
+    type: "TAB_OPEN",
     title: currentTab.title,
     url: currentTab.url
   });
@@ -62,8 +61,19 @@ chrome.tabs.query({
 // User switches tabs
 chrome.tabs.onActivated.addListener(async (info) => {
 
-  stopTimer();
+  // Send previous tab time
+  if (currentTab && startTime) {
 
+    send({
+      type: "TAB_CLOSE",
+      title: currentTab.title,
+      url: currentTab.url,
+      durationMs: getDuration()
+    });
+
+  }
+
+  // Get new tab
   const tab = await chrome.tabs.get(info.tabId);
 
   currentTab = {
@@ -71,31 +81,45 @@ chrome.tabs.onActivated.addListener(async (info) => {
     url: tab.url
   };
 
+  // Send new tab event
   send({
-    type: "PAGE_CHANGED",
+    type: "TAB_SWITCHED",
     title: currentTab.title,
     url: currentTab.url
   });
 
-  startTimer();
+  resetTimer();
 
 });
 
 // User tabs OUT of Chrome
 chrome.windows.onFocusChanged.addListener((windowId) => {
 
-  // Lost focus
+  // Chrome unfocused
   if (windowId === chrome.windows.WINDOW_ID_NONE) {
 
-    stopTimer();
+    if (currentTab && startTime) {
+
+      send({
+        type: "TAB_IDLE",
+        title: currentTab.title,
+        url: currentTab.url,
+        durationMs: getDuration()
+      });
+
+      startTime = null;
+
+    }
 
   }
 
-  // Focused Chrome again
+  // User returns to Chrome
   else {
 
     if (currentTab && !startTime) {
-      startTimer();
+
+      resetTimer();
+
     }
 
   }
