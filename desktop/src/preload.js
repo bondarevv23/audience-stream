@@ -21,6 +21,7 @@ contextBridge.exposeInMainWorld('nielsen', {
       'consent-changed',
       'events-sent',
       'backend-error',
+      'outbox-stats',
     ];
     if (allowed.includes(channel)) {
       ipcRenderer.on(channel, (_, ...args) => callback(...args));

@@ -163,6 +163,12 @@ function setupListeners() {
     updateStatus('red', 'Backend error — retrying…');
     console.warn('[UI] Backend error:', msg);
   });
+
+  window.nielsen.on('outbox-stats', (stats) => {
+    console.log(`[Outbox] pending=${stats.pending} sent=${stats.sent} failed=${stats.failed}`);
+    const el = document.getElementById('outbox-pending');
+    if (el) el.textContent = stats.pending > 0 ? `${stats.pending} queued` : '';
+  });
 }
 
 // ─── Start ────────────────────────────────────────────────────────────────────

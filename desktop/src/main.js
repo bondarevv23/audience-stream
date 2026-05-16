@@ -3,6 +3,7 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const Store = require('electron-store');
 const { startWSServer, stopWSServer } = require('./ws-server');
+const db = require('./db');
 
 // ─── Persistent store (survives app restart, NOT reinstall) ───────────────────
 const store = new Store({
@@ -28,6 +29,7 @@ if (!store.get('userId')) {
 
 let mainWindow = null;
 let tray = null;
+let flushInterval = null;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -77,11 +79,12 @@ function createTray() {
 
 async function gracefulShutdown() {
   console.log('[App] Graceful shutdown...');
-  try {
-    await stopWSServer();
-  } catch (e) {
-    console.error('[App] WS stop error:', e.message);
+  if (flushInterval) {
+    clearInterval(flushInterval);
+    flushInterval = null;
   }
+  try { await flushWorker(); } catch (e) { console.error('[App] Final flush error:', e.message); }
+  try { await stopWSServer(); } catch (e) { console.error('[App] WS stop error:', e.message); }
   app.exit(0);
 }
 
@@ -89,6 +92,8 @@ async function gracefulShutdown() {
 app.whenReady().then(async () => {
   createWindow();
   createTray();
+
+  await db.init();
 
   // Start WebSocket server (port 8080)
   startWSServer(8080, {
@@ -98,7 +103,8 @@ app.whenReady().then(async () => {
     getUserId: () => store.get('userId'),
   });
 
-  // Auto-restart WS if it crashes (handled inside ws-server.js)
+  // Background flush worker — drain outbox every 5 seconds
+  flushInterval = setInterval(flushWorker, 5_000);
 });
 
 app.on('before-quit', () => {
@@ -111,9 +117,6 @@ app.on('window-all-closed', () => {
 });
 
 // ─── Tracking event handler ───────────────────────────────────────────────────
-let pendingEvents = [];
-let retryTimer = null;
-
 function handleTrackingEvent(event) {
   if (!store.get('isTracking')) return;
 
@@ -124,9 +127,9 @@ function handleTrackingEvent(event) {
   const filtered = filterByConsent(event, consent);
   if (!filtered) return;
 
-  // Add to pending queue, then try to send
-  pendingEvents.push({ userId, ...filtered, ts: Date.now() });
-  flushEvents();
+  // Persist to SQLite outbox — survives crashes and network outages
+  const record = { userId, ...filtered, ts: Date.now() };
+  db.insertEvent(record.userId, filtered.type || 'unknown', record);
 }
 
 function filterByConsent(event, consent) {
@@ -150,18 +153,24 @@ function anonymizeUrl(url) {
   }
 }
 
-async function flushEvents() {
-  if (pendingEvents.length === 0) return;
-  const batch = [...pendingEvents];
-  pendingEvents = [];
+async function flushWorker() {
+  // Re-queue eligible failed events before fetching pending
+  db.retryFailed();
+
+  const pending = db.getPendingEvents(50);
+
+  mainWindow?.webContents.send('outbox-stats', db.getStats());
+
+  if (pending.length === 0) return;
+
+  const ids = pending.map((r) => r.id);
+  const batch = pending.map((r) => JSON.parse(r.payload));
 
   try {
     const backendUrl = process.env.BACKEND_URL || 'http://localhost:8081/api/events';
     const res = await fetch(backendUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json',
-        'X-Api-Key': '123'
-       },
+      headers: { 'Content-Type': 'application/json', 'X-Api-Key': '123' },
       body: JSON.stringify({ events: batch }),
       signal: AbortSignal.timeout(5000),
     });
@@ -171,30 +180,19 @@ async function flushEvents() {
     const data = await res.json();
     const earned = data.coinsEarned || 0;
 
-    // Update coins
+    db.markSent(ids);
+
     const newCoins = parseFloat((store.get('coins') + earned).toFixed(4));
     store.set('coins', newCoins);
 
-    // Notify renderer
     mainWindow?.webContents.send('coins-update', newCoins);
     mainWindow?.webContents.send('events-sent', batch.length);
-
-    // Clear retry timer
-    if (retryTimer) {
-      clearTimeout(retryTimer);
-      retryTimer = null;
-    }
+    mainWindow?.webContents.send('outbox-stats', db.getStats());
   } catch (err) {
     console.error('[Backend] Send failed:', err.message);
-    // Put events back and retry in 10s
-    pendingEvents = [...batch, ...pendingEvents];
-    if (!retryTimer) {
-      retryTimer = setTimeout(() => {
-        retryTimer = null;
-        flushEvents();
-      }, 10_000);
-    }
+    db.markFailed(ids);
     mainWindow?.webContents.send('backend-error', err.message);
+    mainWindow?.webContents.send('outbox-stats', db.getStats());
   }
 }
 
