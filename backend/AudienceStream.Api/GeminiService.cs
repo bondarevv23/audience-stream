@@ -46,9 +46,15 @@ public class GeminiService(IHttpClientFactory httpClientFactory, IConfiguration 
         };
 
         var client = httpClientFactory.CreateClient();
-        var url = $"{ApiBase}/{Model}:generateContent?key={_apiKey}";
+        var url = $"{ApiBase}/{Model}:generateContent";
 
-        var httpResponse = await client.PostAsJsonAsync(url, requestBody);
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
+        httpRequest.Headers.Add("x-goog-api-key", _apiKey);
+        httpRequest.Content = JsonContent.Create(requestBody);
+        httpRequest.Content.Headers.ContentType =
+            new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+
+        var httpResponse = await client.SendAsync(httpRequest);
         httpResponse.EnsureSuccessStatusCode();
 
         using var doc = await JsonDocument.ParseAsync(
