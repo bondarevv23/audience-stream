@@ -8,6 +8,12 @@ public class ApiKeyMiddleware(RequestDelegate next, IConfiguration configuration
 
     public async Task InvokeAsync(HttpContext context)
     {
+        if (context.Request.Path.StartsWithSegments("/admin"))
+        {
+            await next(context);
+            return;
+        }
+
         if (!context.Request.Headers.TryGetValue(ApiKeyHeader, out var provided)
             || provided != _apiKey)
         {

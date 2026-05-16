@@ -53,6 +53,40 @@ app.MapPost("/api/events", async (HttpRequest request, EventService eventService
     return Results.Ok(new { inserted = documents.Count });
 });
 
+app.MapGet("/admin/events/recent", async (int? limit, EventService eventService) =>
+{
+    var json = await eventService.GetRecentEventsAsync(limit is > 0 ? limit.Value : 50);
+    return Results.Content(json, "application/json");
+});
+
+app.MapPost("/admin/events/by-type", async (HttpRequest request, EventService eventService) =>
+{
+    using var body = await JsonDocument.ParseAsync(request.Body);
+    var root = body.RootElement;
+
+    var eventType = root.TryGetProperty("eventType", out var et) ? et.GetString() : null;
+    var limit = root.TryGetProperty("limit", out var lim) && lim.TryGetInt32(out var l) ? l : 50;
+
+    if (string.IsNullOrEmpty(eventType))
+        return Results.BadRequest(new { error = "eventType is required." });
+
+    var json = await eventService.GetEventsByTypeAsync(eventType, limit);
+    return Results.Content(json, "application/json");
+});
+
+app.MapPost("/admin/events", async (HttpRequest request, EventService eventService) =>
+{
+    using var body = await JsonDocument.ParseAsync(request.Body);
+    var root = body.RootElement;
+
+    var userId = root.TryGetProperty("user_id", out var uid) ? uid.GetString() : null;
+    var eventType = root.TryGetProperty("event_type", out var et) ? et.GetString() : null;
+    var limit = root.TryGetProperty("limit", out var lim) && lim.TryGetInt32(out var l) ? l : 50;
+
+    var json = await eventService.GetEventsAsync(userId, eventType, limit);
+    return Results.Content(json, "application/json");
+});
+
 var eventService = app.Services.GetRequiredService<EventService>();
 await eventService.EnsureIndexesAsync();
 
