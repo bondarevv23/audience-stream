@@ -69,7 +69,8 @@ function _start(port) {
 }
 
 function handleMessage(event, socket) {
-  switch (event.type) {
+  const eventType = event.event_type ?? event.type;
+  switch (eventType) {
     case 'ping':
       socket.send(JSON.stringify({ type: 'pong' }));
       break;
@@ -114,7 +115,7 @@ function handleMessage(event, socket) {
     case 'url':
     case 'activity':
     case 'window':
-      console.log(`[TRACK] ${timestamp()} | ${event.type.toUpperCase()} | ${event.url}`);
+      console.log(`[TRACK] ${timestamp()} | ${eventType.toUpperCase()} | ${event.url}`);
       callbacks.onEvent?.(event);
       socket.send(JSON.stringify({ type: 'ack', received: true }));
       break;

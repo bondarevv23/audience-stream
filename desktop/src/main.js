@@ -150,64 +150,52 @@ function anonymizeUrl(url) {
   }
 }
 
-// async function flushEvents() {
-//   if (pendingEvents.length === 0) return;
-//   const batch = [...pendingEvents];
-//   pendingEvents = [];
-
-//   try {
-//     const backendUrl = process.env.BACKEND_URL || 'http://localhost:3000/api/events';
-//     const res = await fetch(backendUrl, {
-//       method: 'POST',
-//       headers: { 'Content-Type': 'application/json' },
-//       body: JSON.stringify({ events: batch }),
-//       signal: AbortSignal.timeout(5000),
-//     });
-
-//     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-//     const data = await res.json();
-//     const earned = data.coinsEarned || 0;
-
-//     // Update coins
-//     const newCoins = parseFloat((store.get('coins') + earned).toFixed(4));
-//     store.set('coins', newCoins);
-
-//     // Notify renderer
-//     mainWindow?.webContents.send('coins-update', newCoins);
-//     mainWindow?.webContents.send('events-sent', batch.length);
-
-//     // Clear retry timer
-//     if (retryTimer) {
-//       clearTimeout(retryTimer);
-//       retryTimer = null;
-//     }
-//   } catch (err) {
-//     console.error('[Backend] Send failed:', err.message);
-//     // Put events back and retry in 10s
-//     pendingEvents = [...batch, ...pendingEvents];
-//     if (!retryTimer) {
-//       retryTimer = setTimeout(() => {
-//         retryTimer = null;
-//         flushEvents();
-//       }, 10_000);
-//     }
-//     mainWindow?.webContents.send('backend-error', err.message);
-//   }
-// }
-
 async function flushEvents() {
   if (pendingEvents.length === 0) return;
   const batch = [...pendingEvents];
   pendingEvents = [];
 
-  // MOCK — убрать когда бэкенд будет готов
-  const earned = batch.length * 0.1;
-  const newCoins = parseFloat((store.get('coins') + earned).toFixed(4));
-  store.set('coins', newCoins);
-  mainWindow?.webContents.send('coins-update', newCoins);
-  mainWindow?.webContents.send('events-sent', batch.length);
-  console.log('[Mock] Events:', batch);
+  try {
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:8081/api/events';
+    const res = await fetch(backendUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json',
+        'X-Api-Key': '123'
+       },
+      body: JSON.stringify({ events: batch }),
+      signal: AbortSignal.timeout(5000),
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const data = await res.json();
+    const earned = data.coinsEarned || 0;
+
+    // Update coins
+    const newCoins = parseFloat((store.get('coins') + earned).toFixed(4));
+    store.set('coins', newCoins);
+
+    // Notify renderer
+    mainWindow?.webContents.send('coins-update', newCoins);
+    mainWindow?.webContents.send('events-sent', batch.length);
+
+    // Clear retry timer
+    if (retryTimer) {
+      clearTimeout(retryTimer);
+      retryTimer = null;
+    }
+  } catch (err) {
+    console.error('[Backend] Send failed:', err.message);
+    // Put events back and retry in 10s
+    pendingEvents = [...batch, ...pendingEvents];
+    if (!retryTimer) {
+      retryTimer = setTimeout(() => {
+        retryTimer = null;
+        flushEvents();
+      }, 10_000);
+    }
+    mainWindow?.webContents.send('backend-error', err.message);
+  }
 }
 
 // ─── IPC handlers (renderer ↔ main) ─────────────────────────────────────────
