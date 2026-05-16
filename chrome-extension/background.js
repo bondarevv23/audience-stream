@@ -7,8 +7,6 @@ let startTime = null;
 
 function send(data) {
 
-  console.log(data);
-
   if (socket.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify(data));
   }
