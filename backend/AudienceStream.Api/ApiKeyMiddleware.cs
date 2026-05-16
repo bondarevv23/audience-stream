@@ -11,6 +11,7 @@ public class ApiKeyMiddleware(RequestDelegate next, IConfiguration configuration
         if (!context.Request.Headers.TryGetValue(ApiKeyHeader, out var provided)
             || provided != _apiKey)
         {
+            Console.WriteLine($"Unauthorized access attempt. Provided key: {provided}, expected key: {_apiKey}");
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             await context.Response.WriteAsync("Unauthorized");
             return;

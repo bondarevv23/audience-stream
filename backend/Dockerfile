@@ -5,8 +5,7 @@ RUN dotnet restore AudienceStream.Api/AudienceStream.Api.csproj
 COPY AudienceStream.Api/ AudienceStream.Api/
 RUN dotnet publish AudienceStream.Api/AudienceStream.Api.csproj \
     -c Release \
-    -o /app/publish \
-    --no-restore
+    -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
