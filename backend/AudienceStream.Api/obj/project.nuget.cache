@@ -1,0 +1,40 @@
+{
+  "version": 2,
+  "dgSpecHash": "Pm7Mu7Tagwo=",
+  "success": true,
+  "projectFilePath": "/Users/vbondarev/Projects/audience-stream/backend/AudienceStream.Api/AudienceStream.Api.csproj",
+  "expectedPackageFiles": [
+    "/Users/vbondarev/.nuget/packages/dnsclient/1.6.1/dnsclient.1.6.1.nupkg.sha512",
+    "/Users/vbondarev/.nuget/packages/mongodb.bson/3.1.0/mongodb.bson.3.1.0.nupkg.sha512",
+    "/Users/vbondarev/.nuget/packages/mongodb.driver/3.1.0/mongodb.driver.3.1.0.nupkg.sha512",
+    "/Users/vbondarev/.nuget/packages/sharpcompress/0.30.1/sharpcompress.0.30.1.nupkg.sha512",
+    "/Users/vbondarev/.nuget/packages/snappier/1.0.0/snappier.1.0.0.nupkg.sha512",
+    "/Users/vbondarev/.nuget/packages/zstdsharp.port/0.7.3/zstdsharp.port.0.7.3.nupkg.sha512"
+  ],
+  "logs": [
+    {
+      "code": "NU1902",
+      "level": "Warning",
+      "message": "Package 'SharpCompress' 0.30.1 has a known moderate severity vulnerability, https://github.com/advisories/GHSA-6c8g-7p36-r338",
+      "projectPath": "/Users/vbondarev/Projects/audience-stream/backend/AudienceStream.Api/AudienceStream.Api.csproj",
+      "warningLevel": 1,
+      "filePath": "/Users/vbondarev/Projects/audience-stream/backend/AudienceStream.Api/AudienceStream.Api.csproj",
+      "libraryId": "SharpCompress",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    },
+    {
+      "code": "NU1903",
+      "level": "Warning",
+      "message": "Package 'Snappier' 1.0.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-pggp-6c3x-2xmx",
+      "projectPath": "/Users/vbondarev/Projects/audience-stream/backend/AudienceStream.Api/AudienceStream.Api.csproj",
+      "warningLevel": 1,
+      "filePath": "/Users/vbondarev/Projects/audience-stream/backend/AudienceStream.Api/AudienceStream.Api.csproj",
+      "libraryId": "Snappier",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    }
+  ]
+}
