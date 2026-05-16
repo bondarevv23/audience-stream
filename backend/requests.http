@@ -1,0 +1,300 @@
+@baseUrl = http://localhost:8081
+@apiKey = 123
+
+
+### ─────────────────────────────────────────
+###  INGEST  POST /api/events
+### ─────────────────────────────────────────
+
+### Ingest a single browser_navigation event
+POST {{baseUrl}}/api/events
+Content-Type: application/json
+X-Api-Key: {{apiKey}}
+
+{
+  "event_id": "evt_001",
+  "user_id": "usr_123",
+  "timestamp": "2026-05-17T10:00:00Z",
+  "event_type": "browser_navigation",
+  "duration_seconds": 145,
+  "payload": {
+    "domain": "amazon.com",
+    "full_url": "https://www.amazon.com/s?k=macbook+pro",
+    "title": "Amazon.com : macbook pro",
+    "search_intent": "macbook pro",
+    "browser": "Chrome"
+  }
+}
+
+###
+
+### Ingest a single desktop_app_focus event
+POST {{baseUrl}}/api/events
+Content-Type: application/json
+X-Api-Key: {{apiKey}}
+
+{
+  "event_id": "evt_002",
+  "user_id": "usr_123",
+  "timestamp": "2026-05-17T10:05:00Z",
+  "event_type": "desktop_app_focus",
+  "duration_seconds": 3600,
+  "payload": {
+    "app_name": "Adobe Photoshop",
+    "window_title": "hackathon_banner_v3.psd",
+    "is_fullscreen": true
+  }
+}
+
+###
+
+### Ingest a batch of mixed events
+POST {{baseUrl}}/api/events
+Content-Type: application/json
+X-Api-Key: {{apiKey}}
+
+[
+  {
+    "event_id": "evt_003",
+    "user_id": "usr_456",
+    "timestamp": "2026-05-17T11:00:00Z",
+    "event_type": "browser_navigation",
+    "duration_seconds": 60,
+    "payload": {
+      "domain": "nike.com",
+      "full_url": "https://www.nike.com/t/air-max",
+      "title": "Nike Air Max Shoes",
+      "search_intent": "air max",
+      "browser": "Chrome"
+    }
+  },
+  {
+    "event_id": "evt_004",
+    "user_id": "usr_456",
+    "timestamp": "2026-05-17T11:05:00Z",
+    "event_type": "TAB_OPEN",
+    "duration_seconds": 10,
+    "payload": {
+      "url": "https://www.youtube.com",
+      "title": "YouTube"
+    }
+  },
+  {
+    "event_id": "evt_005",
+    "user_id": "usr_789",
+    "timestamp": "2026-05-17T11:10:00Z",
+    "event_type": "TAB_SWITCHED",
+    "duration_seconds": 30,
+    "payload": {
+      "from_url": "https://twitter.com",
+      "to_url": "https://reddit.com/r/programming",
+      "title": "r/programming"
+    }
+  },
+  {
+    "event_id": "evt_006",
+    "user_id": "usr_789",
+    "timestamp": "2026-05-17T11:15:00Z",
+    "event_type": "browser_navigation",
+    "duration_seconds": 240,
+    "payload": {
+      "domain": "adidas.com",
+      "full_url": "https://www.adidas.com/us/ultraboost",
+      "title": "Ultraboost Shoes - adidas",
+      "search_intent": "ultraboost running shoes",
+      "browser": "Chrome"
+    }
+  }
+]
+
+###
+
+### Ingest — missing X-Api-Key (expect 401)
+POST {{baseUrl}}/api/events
+Content-Type: application/json
+
+{ "event_id": "evt_bad", "user_id": "usr_000", "event_type": "browser_navigation" }
+
+###
+
+### Ingest — malformed JSON (expect 400)
+POST {{baseUrl}}/api/events
+Content-Type: application/json
+X-Api-Key: {{apiKey}}
+
+{ this is not valid json }
+
+
+### ─────────────────────────────────────────
+###  ADMIN  GET /admin/events/recent
+### ─────────────────────────────────────────
+
+### Get 10 most recent events
+GET {{baseUrl}}/admin/events/recent?limit=10
+
+###
+
+### Get 100 most recent events (default used by the admin app)
+GET {{baseUrl}}/admin/events/recent?limit=100
+
+###
+
+### Get recent events — no limit param (backend defaults to 50)
+GET {{baseUrl}}/admin/events/recent
+
+
+### ─────────────────────────────────────────
+###  ADMIN  POST /admin/events/by-type
+### ─────────────────────────────────────────
+
+### Filter by browser_navigation
+POST {{baseUrl}}/admin/events/by-type
+Content-Type: application/json
+
+{
+  "eventType": "browser_navigation",
+  "limit": 50
+}
+
+###
+
+### Filter by desktop_app_focus
+POST {{baseUrl}}/admin/events/by-type
+Content-Type: application/json
+
+{
+  "eventType": "desktop_app_focus",
+  "limit": 20
+}
+
+###
+
+### Filter by TAB_SWITCHED (chrome extension events)
+POST {{baseUrl}}/admin/events/by-type
+Content-Type: application/json
+
+{
+  "eventType": "TAB_SWITCHED",
+  "limit": 50
+}
+
+###
+
+### Filter by TAB_OPEN
+POST {{baseUrl}}/admin/events/by-type
+Content-Type: application/json
+
+{
+  "eventType": "TAB_OPEN",
+  "limit": 50
+}
+
+###
+
+### Missing eventType (expect 400)
+POST {{baseUrl}}/admin/events/by-type
+Content-Type: application/json
+
+{
+  "limit": 10
+}
+
+
+### ─────────────────────────────────────────
+###  ADMIN  POST /admin/events
+### ─────────────────────────────────────────
+
+### All events, limit 20
+POST {{baseUrl}}/admin/events
+Content-Type: application/json
+
+{
+  "limit": 20
+}
+
+###
+
+### Filter by user_id
+POST {{baseUrl}}/admin/events
+Content-Type: application/json
+
+{
+  "user_id": "usr_123",
+  "limit": 100
+}
+
+###
+
+### Filter by event_type
+POST {{baseUrl}}/admin/events
+Content-Type: application/json
+
+{
+  "event_type": "browser_navigation",
+  "limit": 50
+}
+
+###
+
+### Filter by both user_id and event_type
+POST {{baseUrl}}/admin/events
+Content-Type: application/json
+
+{
+  "user_id": "usr_456",
+  "event_type": "browser_navigation",
+  "limit": 50
+}
+
+
+### ─────────────────────────────────────────
+###  ADMIN  POST /admin/gemini-query
+### ─────────────────────────────────────────
+
+### Which users visited shopping sites?
+POST {{baseUrl}}/admin/gemini-query
+Content-Type: application/json
+
+{
+  "question": "Which users visited shopping or e-commerce websites? List them and the domains they visited."
+}
+
+###
+
+### Purchase intent analysis
+POST {{baseUrl}}/admin/gemini-query
+Content-Type: application/json
+
+{
+  "question": "Which users show strong purchase intent based on their browsing behavior? Summarize what products they seem interested in."
+}
+
+###
+
+### Most active users
+POST {{baseUrl}}/admin/gemini-query
+Content-Type: application/json
+
+{
+  "question": "Who are the most active users by total time spent (duration_seconds)? Rank them and include total time."
+}
+
+###
+
+### App usage pattern
+POST {{baseUrl}}/admin/gemini-query
+Content-Type: application/json
+
+{
+  "question": "Which desktop applications are users spending the most time on? Give a summary per app."
+}
+
+###
+
+### Empty question (expect 400)
+POST {{baseUrl}}/admin/gemini-query
+Content-Type: application/json
+
+{
+  "question": "   "
+}
