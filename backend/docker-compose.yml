@@ -35,6 +35,7 @@ services:
       MongoDB__ConnectionString: "mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongodb:27017/?authSource=admin"
       MongoDB__Database: audience_stream
       Auth__ApiKey: ${API_KEY}
+      Gemini__ApiKey: ${GEMINI_API_KEY}
     ports:
       - "8081:8081"
     depends_on:

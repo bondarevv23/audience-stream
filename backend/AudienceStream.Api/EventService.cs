@@ -84,6 +84,18 @@ public class EventService(IMongoDatabase database)
         return ToJsonArray(docs);
     }
 
+    public async Task<string> GetAllEventsJsonAsync(int limit = 2000)
+    {
+        var docs = await _events
+            .Find(FilterDefinition<BsonDocument>.Empty)
+            .Project(ExcludeId)
+            .Sort(Builders<BsonDocument>.Sort.Descending("timestamp"))
+            .Limit(limit)
+            .ToListAsync();
+
+        return ToJsonArray(docs);
+    }
+
     private static string ToJsonArray(List<BsonDocument> docs)
     {
         if (docs.Count == 0) return "[]";

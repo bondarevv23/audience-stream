@@ -14,6 +14,8 @@ builder.Services.AddSingleton<IMongoClient>(_ => new MongoClient(connectionStrin
 builder.Services.AddSingleton(sp =>
     sp.GetRequiredService<IMongoClient>().GetDatabase(databaseName));
 builder.Services.AddSingleton<EventService>();
+builder.Services.AddSingleton<GeminiService>();
+builder.Services.AddHttpClient();
 
 var app = builder.Build();
 
@@ -85,6 +87,30 @@ app.MapPost("/admin/events", async (HttpRequest request, EventService eventServi
 
     var json = await eventService.GetEventsAsync(userId, eventType, limit);
     return Results.Content(json, "application/json");
+});
+
+app.MapPost("/admin/gemini-query", async (HttpRequest request, EventService eventService, GeminiService geminiService) =>
+{
+    using var body = await JsonDocument.ParseAsync(request.Body);
+    var question = body.RootElement.TryGetProperty("question", out var q) ? q.GetString() : null;
+
+    if (string.IsNullOrWhiteSpace(question))
+        return Results.BadRequest(new { error = "question is required." });
+
+    var eventsJson = await eventService.GetAllEventsJsonAsync();
+
+    try
+    {
+        var result = await geminiService.QueryAsync(question, eventsJson);
+        return Results.Ok(result);
+    }
+    catch (HttpRequestException ex)
+    {
+        return Results.Problem(
+            detail: ex.Message,
+            title: "Gemini API request failed.",
+            statusCode: 502);
+    }
 });
 
 var eventService = app.Services.GetRequiredService<EventService>();
