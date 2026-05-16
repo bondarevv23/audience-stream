@@ -1,0 +1,1 @@
+export const EVENT_TYPES = ["TAB_SWITCHED", "TAB_CLOSE", "TAB_IDLE", "TAB_OPEN"];

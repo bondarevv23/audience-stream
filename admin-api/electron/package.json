@@ -1,0 +1,13 @@
+{
+  "name": "audience-stream-admin-electron",
+  "version": "0.1.0",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "dev": "electron .",
+    "start": "electron ."
+  },
+  "dependencies": {
+    "electron": "^30.5.1"
+  }
+}

@@ -1,3 +1,10 @@
 .git
 .idea
 /desktop/node_modules
+/admin-api/node_modules
+/admin-api/electron/node_modules
+/admin-api/renderer/node_modules
+/admin-api/*/dist
+/admin-api/*/build
+/admin-api/out
+*.log
