@@ -1,6 +1,31 @@
-const socket = new WebSocket("ws://localhost:8080");
+let socket = null;
 
-socket.onerror = () => {};
+function connectWebSocket() {
+
+  socket = new WebSocket("ws://localhost:8080");
+
+  socket.onopen = () => {
+    console.log("WebSocket connected");
+  };
+
+  socket.onclose = () => {
+
+    console.log("WebSocket disconnected");
+
+    // Retry after 2 sec
+    setTimeout(connectWebSocket, 2000);
+
+  };
+
+  socket.onerror = () => {
+
+    socket.close();
+
+  };
+
+}
+
+connectWebSocket();
 
 let currentTab = null;
 let startTime = null;
@@ -115,9 +140,8 @@ function send(data) {
   if (socket.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify(data));
   }
-
 }
-
+  
 function getDurationSeconds() {
 
   if (!startTime) return 0;
