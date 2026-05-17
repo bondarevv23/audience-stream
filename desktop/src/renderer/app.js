@@ -3,7 +3,7 @@ let state = {
   userId: null,
   coins: 0,
   isTracking: false,
-  consent: { browserHistory: false, anonymousMode: true, activeWindow: false, shareWithNielsen: false },
+  consent: { browserHistory: false, anonymousMode: true, activeWindow: false, desktopApps: false, shareWithNielsen: false },
   firstRun: true,
 };
 
@@ -54,9 +54,11 @@ function updateUI() {
   // Sync settings panel toggles
   const sb = document.getElementById('s-browser');
   const sw = document.getElementById('s-window');
+  const sa = document.getElementById('s-apps');
   const sn = document.getElementById('s-nielsen');
   if (sb) sb.checked = !!state.consent.browserHistory;
   if (sw) sw.checked = !!state.consent.activeWindow;
+  if (sa) sa.checked = !!state.consent.desktopApps;
   if (sn) sn.checked = !!state.consent.shareWithNielsen;
 }
 
@@ -70,7 +72,7 @@ function selectMode(mode) {
 async function saveConsent() {
   const consent = {
     browserHistory: document.getElementById('c-browser').checked,
-    activeWindow: document.getElementById('c-window').checked,
+    desktopApps: document.getElementById('c-apps').checked,      // ← новый id и ключ
     shareWithNielsen: document.getElementById('c-nielsen').checked,
     anonymousMode: selectedMode === 'anon',
   };
@@ -113,7 +115,7 @@ function selectModeSettings(mode) {
 async function updateConsentLive() {
   const consent = {
     browserHistory: document.getElementById('s-browser').checked,
-    activeWindow: document.getElementById('s-window').checked,
+    desktopApps: document.getElementById('s-apps').checked,      // ← новый id и ключ
     shareWithNielsen: document.getElementById('s-nielsen').checked,
     anonymousMode: selectedModeSettings === 'anon',
   };

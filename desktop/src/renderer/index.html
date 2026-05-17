@@ -3,24 +3,23 @@
 <head>
 <meta charset="UTF-8" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com;" />
-<title>Nielsen Tracker</title>
+<title>Audience Stream</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet" />
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg: #0f0f13;
-    --bg2: #16161c;
-    --bg3: #1e1e28;
-    --accent: #5b6eff;
-    --accent2: #7c4dff;
-    --green: #2de08b;
-    --red: #ff4d6d;
-    --text: #e8e8f0;
-    --muted: #7070a0;
-    --border: rgba(255,255,255,0.07);
-    --radius: 12px;
+    --bg:      #0f0f13;
+    --bg2:     #16161c;
+    --bg3:     #1e1e28;
+    --accent:  #5b6eff;
+    --green:   #2de08b;
+    --red:     #ff4d6d;
+    --text:    #e8e8f0;
+    --muted:   #7070a0;
+    --border:  rgba(255,255,255,0.07);
+    --radius:  12px;
     --font-head: 'Syne', sans-serif;
     --font-mono: 'DM Mono', monospace;
   }
@@ -34,47 +33,28 @@
     user-select: none;
   }
 
-  /* ── Titlebar drag area ── */
   .titlebar {
     -webkit-app-region: drag;
     height: 36px;
     display: flex; align-items: center; justify-content: space-between;
     padding: 0 16px;
     border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
   }
-  .titlebar .logo { font-size: 13px; font-weight: 700; letter-spacing: 0.12em; opacity: 0.5; }
+  .titlebar .logo { font-size: 12px; font-weight: 700; letter-spacing: 0.15em; color: var(--muted); }
   .close-btn {
     -webkit-app-region: no-drag;
-    width: 12px; height: 12px;
-    border-radius: 50%;
-    background: var(--red);
-    border: none; cursor: pointer; opacity: 0.7;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--red); border: none; cursor: pointer; opacity: 0.6;
   }
   .close-btn:hover { opacity: 1; }
 
-  /* ── Views ── */
   .view { display: none; flex-direction: column; height: calc(680px - 36px); }
   .view.active { display: flex; }
 
-  /* ─── CONSENT VIEW ─── */
-  #consent-view { padding: 28px 24px; overflow-y: auto; gap: 20px; }
-  .consent-header { text-align: center; }
-  .consent-header h1 { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
-  .consent-header p { font-size: 13px; color: var(--muted); line-height: 1.6; }
-
-  .consent-group { background: var(--bg2); border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; }
-  .consent-item {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 14px 16px;
-    border-bottom: 1px solid var(--border);
-  }
-  .consent-item:last-child { border-bottom: none; }
-  .consent-info h3 { font-size: 14px; font-weight: 600; margin-bottom: 3px; }
-  .consent-info p { font-size: 12px; color: var(--muted); line-height: 1.4; }
-
-  /* Toggle switch */
+  /* Toggle */
   .toggle { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
-  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
   .toggle-track {
     position: absolute; inset: 0;
     background: var(--bg3); border: 1px solid var(--border);
@@ -89,33 +69,56 @@
   }
   .toggle input:checked ~ .toggle-thumb { left: 23px; }
 
+  /* Consent group */
+  .consent-group {
+    background: var(--bg2);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .consent-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .consent-item:last-child { border-bottom: none; }
+  .consent-info h3 { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+  .consent-info p  { font-size: 11px; color: var(--muted); line-height: 1.4; }
+
+  /* Mode chips */
   .mode-chips { display: flex; gap: 8px; }
   .chip {
-    flex: 1; padding: 10px; border-radius: 8px;
+    flex: 1; padding: 10px 8px; border-radius: 8px;
     background: var(--bg3); border: 1px solid var(--border);
     cursor: pointer; text-align: center; transition: 0.15s;
   }
-  .chip h4 { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
-  .chip p { font-size: 11px; color: var(--muted); }
+  .chip h4 { font-size: 12px; font-weight: 600; margin-bottom: 2px; }
+  .chip p  { font-size: 11px; color: var(--muted); }
   .chip.selected { border-color: var(--accent); background: rgba(91,110,255,0.1); }
   .chip.selected h4 { color: var(--accent); }
 
   .btn-primary {
-    width: 100%; padding: 14px;
+    width: 100%; padding: 13px;
     background: var(--accent); color: white;
     border: none; border-radius: var(--radius);
-    font-family: var(--font-head); font-size: 15px; font-weight: 700;
-    cursor: pointer; transition: 0.15s; letter-spacing: 0.02em;
+    font-family: var(--font-head); font-size: 14px; font-weight: 700;
+    cursor: pointer; transition: 0.15s; letter-spacing: 0.03em;
   }
   .btn-primary:hover { background: #6e7fff; }
   .btn-primary:active { transform: scale(0.98); }
 
-  /* ─── MAIN VIEW ─── */
-  #main-view { overflow: hidden; }
+  /* ── CONSENT VIEW ── */
+  #consent-view { padding: 24px 20px; overflow-y: auto; gap: 16px; }
+  .consent-header { text-align: center; }
+  .consent-header h1 { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+  .consent-header p  { font-size: 12px; color: var(--muted); line-height: 1.6; }
+
+  /* ── MAIN VIEW ── */
+  #main-view { position: relative; overflow: hidden; }
 
   .top-bar {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 16px 20px 12px;
+    padding: 14px 20px 10px; flex-shrink: 0;
   }
   .user-id {
     font-family: var(--font-mono); font-size: 11px; color: var(--muted);
@@ -123,132 +126,117 @@
     border: 1px solid var(--border);
   }
   .settings-btn {
-    width: 32px; height: 32px; border-radius: 8px;
+    width: 30px; height: 30px; border-radius: 8px;
     background: var(--bg2); border: 1px solid var(--border);
     cursor: pointer; display: flex; align-items: center; justify-content: center;
-    color: var(--muted); font-size: 16px; transition: 0.15s;
+    color: var(--muted); font-size: 15px; transition: 0.15s;
   }
   .settings-btn:hover { color: var(--text); border-color: var(--accent); }
 
   /* Coins card */
   .coins-card {
-    margin: 0 20px 16px;
+    margin: 0 20px 14px;
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
     border: 1px solid rgba(91,110,255,0.25);
-    border-radius: 16px; padding: 20px;
-    position: relative; overflow: hidden;
+    border-radius: 16px; padding: 18px 20px;
+    flex-shrink: 0;
   }
-  .coins-card::before {
-    content: '';
-    position: absolute; top: -40px; right: -40px;
-    width: 120px; height: 120px;
-    background: radial-gradient(circle, rgba(91,110,255,0.15) 0%, transparent 70%);
-    pointer-events: none;
+  .coins-top {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 8px;
   }
-  .coins-label { font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0.1em; margin-bottom: 6px; }
-  .coins-value { font-size: 38px; font-weight: 700; color: #fff; line-height: 1; }
-  .coins-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .coins-label { font-size: 10px; color: var(--muted); font-weight: 600; letter-spacing: 0.12em; }
+  .mode-badge {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+    padding: 3px 8px; border-radius: 5px;
+  }
+  .mode-badge.anon       { background: rgba(91,110,255,0.15); color: var(--accent); border: 1px solid rgba(91,110,255,0.3); }
+  .mode-badge.identified { background: rgba(255,200,50,0.1);  color: #ffc832;       border: 1px solid rgba(255,200,50,0.25); }
+  .coins-value { font-size: 36px; font-weight: 700; color: #fff; line-height: 1; margin-bottom: 8px; }
+  .coins-bottom { display: flex; align-items: center; justify-content: space-between; }
+  .coins-sub  { font-size: 12px; color: var(--muted); }
   .coins-rate {
-    font-family: var(--font-mono);
-    font-size: 12px;
-    color: var(--green);
-    background: rgba(45,224,139,0.1);
-    padding: 4px 8px;
-    border-radius: 6px;
+    font-family: var(--font-mono); font-size: 11px;
+    color: var(--green); background: rgba(45,224,139,0.1);
+    padding: 3px 8px; border-radius: 5px;
   }
 
-  /* Power button */
+  /* Power */
   .power-section {
     display: flex; flex-direction: column; align-items: center;
-    padding: 8px 20px 16px;
+    padding: 6px 20px 14px; flex-shrink: 0;
   }
   .power-ring {
-    width: 100px; height: 100px;
-    border-radius: 50%;
+    width: 90px; height: 90px; border-radius: 50%;
     border: 2px solid var(--border);
     display: flex; align-items: center; justify-content: center;
     cursor: pointer; transition: 0.3s; position: relative;
   }
-  .power-ring.on { border-color: var(--green); box-shadow: 0 0 30px rgba(45,224,139,0.2); }
+  .power-ring.on  { border-color: var(--green); box-shadow: 0 0 28px rgba(45,224,139,0.2); }
   .power-ring.off { border-color: var(--muted); }
   .power-ring::before {
-    content: '';
-    position: absolute; inset: 5px;
-    border-radius: 50%;
-    border: 1px solid var(--border);
-    transition: 0.3s;
+    content: ''; position: absolute; inset: 5px;
+    border-radius: 50%; border: 1px solid var(--border); transition: 0.3s;
   }
   .power-ring.on::before { border-color: rgba(45,224,139,0.3); }
-  .power-icon { font-size: 32px; transition: 0.3s; }
-  .power-ring.on .power-icon { color: var(--green); }
+  .power-icon { font-size: 28px; transition: 0.3s; }
+  .power-ring.on  .power-icon { color: var(--green); }
   .power-ring.off .power-icon { color: var(--muted); }
-  .power-label { margin-top: 10px; font-size: 13px; color: var(--muted); font-weight: 600; letter-spacing: 0.08em; }
+  .power-label { margin-top: 8px; font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: 0.1em; }
 
-  /* Stats row */
-  .stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 20px 16px; }
+  /* Stats */
+  .stats-row {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px; margin: 0 20px 12px; flex-shrink: 0;
+  }
   .stat-card {
     background: var(--bg2); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 12px 14px;
+    border-radius: var(--radius); padding: 11px 14px;
   }
-  .stat-label { font-size: 11px; color: var(--muted); letter-spacing: 0.06em; font-weight: 600; margin-bottom: 4px; }
-  .stat-value { font-family: var(--font-mono); font-size: 18px; font-weight: 500; }
+  .stat-label { font-size: 10px; color: var(--muted); letter-spacing: 0.07em; font-weight: 600; margin-bottom: 4px; }
+  .stat-value { font-family: var(--font-mono); font-size: 17px; font-weight: 500; }
   .stat-value.green { color: var(--green); }
 
   /* Status bar */
   .status-bar {
     margin: 0 20px;
     background: var(--bg2); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 10px 14px;
-    display: flex; align-items: center; gap: 8px;
+    border-radius: var(--radius); padding: 9px 14px;
+    display: flex; align-items: center; gap: 8px; flex-shrink: 0;
   }
   .status-dot {
-    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
     background: var(--muted); transition: 0.3s;
   }
-  .status-dot.green { background: var(--green); box-shadow: 0 0 8px var(--green); }
-  .status-dot.red { background: var(--red); }
-  .status-text { font-size: 12px; color: var(--muted); font-family: var(--font-mono); }
+  .status-dot.green { background: var(--green); box-shadow: 0 0 7px var(--green); }
+  .status-dot.red   { background: var(--red); }
+  .status-text { font-size: 11px; color: var(--muted); font-family: var(--font-mono); }
 
-  /* Mode badge */
-  .mode-badge {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  padding: 4px 10px;
-  border-radius: 6px;
-  }
-  .mode-badge.anon {
-    background: rgba(91,110,255,0.15);
-    color: var(--accent);
-    border: 1px solid rgba(91,110,255,0.3);
-  }
-  .mode-badge.identified {
-    background: rgba(255,200,50,0.1);
-    color: #ffc832;
-    border: 1px solid rgba(255,200,50,0.25);
-  }
-
-  /* ─── SETTINGS OVERLAY ─── */
+  /* Settings panel */
   #settings-panel {
-    position: absolute; inset: 36px 0 0 0;
+    position: absolute; inset: 0;
     background: var(--bg); z-index: 100;
     display: none; flex-direction: column;
-    padding: 20px 24px; overflow-y: auto; gap: 16px;
+    padding: 20px; overflow-y: auto; gap: 14px;
   }
   #settings-panel.open { display: flex; }
-  .settings-header { display: flex; align-items: center; justify-content: space-between; }
-  .settings-header h2 { font-size: 16px; font-weight: 700; }
+  .settings-header {
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .settings-header h2 { font-size: 15px; font-weight: 700; }
   .back-btn {
     font-size: 12px; color: var(--accent); cursor: pointer;
     background: none; border: none; font-family: var(--font-head);
+  }
+  .section-label {
+    font-size: 10px; color: var(--muted); font-weight: 600; letter-spacing: 0.1em;
   }
 </style>
 </head>
 <body>
 
-<!-- Titlebar -->
 <div class="titlebar">
-  <span class="logo">Audience Stream</span>
+  <span class="logo">AUDIENCE STREAM</span>
   <button class="close-btn" onclick="window.close()" title="Minimize to tray"></button>
 </div>
 
@@ -273,11 +261,11 @@
     </div>
     <div class="consent-item">
       <div class="consent-info">
-        <h3>Active Window</h3>
-        <p>Which apps you're using and when</p>
+        <h3>Desktop Apps</h3>
+        <p>Which apps are open and how long</p>
       </div>
       <label class="toggle">
-        <input type="checkbox" id="c-window" />
+        <input type="checkbox" id="c-apps" />
         <span class="toggle-track"></span>
         <span class="toggle-thumb"></span>
       </label>
@@ -296,7 +284,7 @@
   </div>
 
   <div>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:10px;font-weight:600;letter-spacing:0.05em;">SHARING MODE</p>
+    <p class="section-label" style="margin-bottom:10px;">SHARING MODE</p>
     <div class="mode-chips">
       <div class="chip selected" id="chip-anon" onclick="selectMode('anon')">
         <h4>Anonymous</h4>
@@ -310,31 +298,32 @@
   </div>
 
   <p style="font-size:11px;color:var(--muted);line-height:1.6;text-align:center;">
-    By continuing you agree to Nielsen's data collection terms. Your data is used for audience research and ad effectiveness measurement.
+    By continuing you agree to Nielsen's data collection terms.<br>
+    Your data is used for audience research and ad effectiveness.
   </p>
 
   <button class="btn-primary" onclick="saveConsent()">Start Earning →</button>
 </div>
 
 <!-- MAIN VIEW -->
-<div class="view" id="main-view" style="position:relative;">
+<div class="view" id="main-view">
 
   <div class="top-bar">
     <div class="user-id" id="uid-display">uid: ...</div>
     <button class="settings-btn" onclick="openSettings()" title="Settings">⚙</button>
   </div>
 
-  <div class="coins-card" style="margin: 0 20px 16px; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border: 1px solid rgba(91,110,255,0.25); border-radius: 16px; padding: 20px;">
-  <div style="font-size:11px; color:var(--muted); font-weight:600; letter-spacing:0.1em; margin-bottom:6px;">TOTAL EARNED</div>
-  <div style="font-size:38px; font-weight:700; color:#fff; line-height:1; margin-bottom:4px;"><span id="coins-display">0.0000</span></div>
-  <div style="display:flex; align-items:center; justify-content:space-between; margin-top:6px;">
-    <div style="display:flex; align-items:center; gap:8px;">
-      <span style="font-size:13px; color:var(--muted);">Nielsen Coins</span>
+  <div class="coins-card">
+    <div class="coins-top">
+      <span class="coins-label">TOTAL EARNED</span>
       <span class="mode-badge anon" id="mode-badge">ANON</span>
     </div>
-    <span class="coins-rate" id="rate-display" style="position:static;">+0 / hr</span>
+    <div class="coins-value"><span id="coins-display">0.0000</span></div>
+    <div class="coins-bottom">
+      <span class="coins-sub">Nielsen Coins</span>
+      <span class="coins-rate" id="rate-display">+0 / hr</span>
+    </div>
   </div>
-</div>
 
   <div class="power-section">
     <div class="power-ring off" id="power-btn" onclick="toggleTracking()">
@@ -350,7 +339,7 @@
     </div>
     <div class="stat-card">
       <div class="stat-label">WS STATUS</div>
-      <div class="stat-value" id="ws-status" style="font-size:13px;color:var(--muted)">waiting...</div>
+      <div class="stat-value" id="ws-status" style="font-size:12px;color:var(--muted)">waiting...</div>
     </div>
   </div>
 
@@ -359,7 +348,7 @@
     <span class="status-text" id="status-text">Idle — waiting for extension</span>
   </div>
 
-  <!-- Settings panel overlay -->
+  <!-- SETTINGS PANEL -->
   <div id="settings-panel">
     <div class="settings-header">
       <h2>Consent Settings</h2>
@@ -380,11 +369,11 @@
       </div>
       <div class="consent-item">
         <div class="consent-info">
-          <h3>Active Window</h3>
-          <p>Which apps you're using and when</p>
+          <h3>Desktop Apps</h3>
+          <p>Which apps are open and how long</p>
         </div>
         <label class="toggle">
-          <input type="checkbox" id="s-window" onchange="updateConsentLive()" />
+          <input type="checkbox" id="s-apps" onchange="updateConsentLive()" />
           <span class="toggle-track"></span>
           <span class="toggle-thumb"></span>
         </label>
@@ -402,18 +391,17 @@
       </div>
     </div>
 
-    <div>
-      <p style="font-size:12px;color:var(--muted);margin-bottom:10px;font-weight:600;letter-spacing:0.05em;">SHARING MODE</p>
-      <div class="mode-chips">
-        <div class="chip selected" id="s-chip-anon" onclick="selectModeSettings('anon')">
-          <h4>Anonymous</h4><p>+1 coin / event</p>
-        </div>
-        <div class="chip" id="s-chip-identified" onclick="selectModeSettings('identified')">
-          <h4>Identified</h4><p>+3 coins / event</p>
-        </div>
+    <p class="section-label">SHARING MODE</p>
+    <div class="mode-chips">
+      <div class="chip selected" id="s-chip-anon" onclick="selectModeSettings('anon')">
+        <h4>Anonymous</h4><p>+1 coin / event</p>
+      </div>
+      <div class="chip" id="s-chip-identified" onclick="selectModeSettings('identified')">
+        <h4>Identified</h4><p>+3 coins / event</p>
       </div>
     </div>
   </div>
+
 </div>
 
 <script src="app.js"></script>

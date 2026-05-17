@@ -15,7 +15,7 @@ const store = new Store({
     consent: {
       browserHistory: false,
       anonymousMode: true,
-      activeWindow: false,
+      desktopApps: false, 
       shareWithNielsen: false,
     },
     firstRun: true,
@@ -30,6 +30,12 @@ if (!store.get('userId')) {
 let mainWindow = null;
 let tray = null;
 let flushInterval = null;
+
+function safeSend(channel, data) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send(channel, data);
+  }
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -133,10 +139,13 @@ function handleTrackingEvent(event) {
 }
 
 function filterByConsent(event, consent) {
-  if (event.type === 'url' && !consent.browserHistory) return null;
-  if (event.type === 'window' && !consent.activeWindow) return null;
+  const browserTypes = ['TAB_OPEN', 'TAB_SWITCHED', 'TAB_CLOSE', 'TAB_IDLE', 'url', 'activity'];
+  if (browserTypes.includes(event.type) && !consent.browserHistory) return null;
 
-  // Anonymize if needed
+  if (event.type === 'window' && !consent.desktopApps) return null;
+
+  if (!consent.shareWithNielsen) return null;
+
   if (consent.anonymousMode) {
     return { ...event, userId: 'anon', url: anonymizeUrl(event.url) };
   }
@@ -159,41 +168,44 @@ async function flushWorker() {
 
   const pending = db.getPendingEvents(50);
 
-  mainWindow?.webContents.send('outbox-stats', db.getStats());
+  safeSend('outbox-stats', db.getStats());
 
   if (pending.length === 0) return;
 
   const ids = pending.map((r) => r.id);
   const batch = pending.map((r) => JSON.parse(r.payload));
-
   try {
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:8081/api/events';
-    const res = await fetch(backendUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Api-Key': '123' },
-      body: JSON.stringify({ events: batch }),
-      signal: AbortSignal.timeout(5000),
-    });
+  const backendUrl = process.env.BACKEND_URL || 'http://localhost:8081/api/events';
+  
+  const res = await fetch(backendUrl, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', 'X-Api-Key': '123' },
+  body: JSON.stringify({ events: batch }),
+  signal: AbortSignal.timeout(5000),
+  });
 
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const responseData = await res.json();
+  console.log('[Backend] status:', res.status);
+  console.log('[Backend] response:', JSON.stringify(responseData));
 
-    const data = await res.json();
-    const earned = data.coinsEarned || 0;
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-    db.markSent(ids);
+  const ratePerEvent = store.get('consent')?.anonymousMode ? 0.1 : 0.3;
+  const earned = responseData.coinsEarned || (batch.length * ratePerEvent);
+  const newCoins = parseFloat((store.get('coins') + earned).toFixed(4));
 
-    const newCoins = parseFloat((store.get('coins') + earned).toFixed(4));
-    store.set('coins', newCoins);
+  db.markSent(ids);
 
-    mainWindow?.webContents.send('coins-update', newCoins);
-    mainWindow?.webContents.send('events-sent', batch.length);
-    mainWindow?.webContents.send('outbox-stats', db.getStats());
-  } catch (err) {
-    console.error('[Backend] Send failed:', err.message);
-    db.markFailed(ids);
-    mainWindow?.webContents.send('backend-error', err.message);
-    mainWindow?.webContents.send('outbox-stats', db.getStats());
-  }
+  store.set('coins', newCoins);
+  safeSend('coins-update', newCoins);
+  safeSend('events-sent', batch.length);
+  safeSend('outbox-stats', db.getStats());
+} catch (err) {
+  console.error('[Backend] Send failed:', err.message);
+  db.markFailed(ids);
+  safeSend('backend-error', err.message);
+  safeSend('outbox-stats', db.getStats());
+}
 }
 
 // ─── IPC handlers (renderer ↔ main) ─────────────────────────────────────────
@@ -207,14 +219,14 @@ ipcMain.handle('get-state', () => ({
 
 ipcMain.handle('set-tracking', (_, value) => {
   store.set('isTracking', value);
-  mainWindow?.webContents.send('tracking-changed', value);
+  safeSend('tracking-changed', value);
   return value;
 });
 
 ipcMain.handle('save-consent', (_, consent) => {
   store.set('consent', consent);
   store.set('firstRun', false);
-  mainWindow?.webContents.send('consent-changed', consent);
+  safeSend('consent-changed', consent);
   return consent;
 });
 
