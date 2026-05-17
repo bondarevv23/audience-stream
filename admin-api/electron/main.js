@@ -39,19 +39,39 @@ function createWindow() {
 
 function registerIpcHandlers() {
   ipcMain.handle("admin:get-events", async (_event, filters = {}) => {
-    return getEvents(filters);
+    try {
+      return await getEvents(filters);
+    } catch (err) {
+      console.error("[ipc] admin:get-events failed:", err.message);
+      throw err;
+    }
   });
 
   ipcMain.handle("admin:get-events-by-type", async (_event, eventType, filters = {}) => {
-    return getEventsByType(eventType, filters);
+    try {
+      return await getEventsByType(eventType, filters);
+    } catch (err) {
+      console.error("[ipc] admin:get-events-by-type failed:", err.message);
+      throw err;
+    }
   });
 
   ipcMain.handle("admin:get-recent-events", async (_event, limit = 50) => {
-    return getRecentEvents(limit);
+    try {
+      return await getRecentEvents(limit);
+    } catch (err) {
+      console.error("[ipc] admin:get-recent-events failed:", err.message);
+      throw err;
+    }
   });
 
   ipcMain.handle("admin:ask-gemini", async (_event, question) => {
-    return askGemini(question);
+    try {
+      return await askGemini(question);
+    } catch (err) {
+      console.error("[ipc] admin:ask-gemini failed:", err.message);
+      throw err;
+    }
   });
 }
 

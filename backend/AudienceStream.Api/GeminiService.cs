@@ -12,7 +12,7 @@ public class GeminiService(IHttpClientFactory httpClientFactory, IConfiguration 
         ?? throw new InvalidOperationException("Gemini:ApiKey is not configured.");
 
     private const string Model = "gemini-2.5-flash";
-    private const string ApiBase = "https://generativelanguage.googleapis.com/v1/models/";
+    private const string ApiBase = "https://generativelanguage.googleapis.com/v1/models";
 
     public async Task<GeminiQueryResult> QueryAsync(string question, string eventsJson)
     {
@@ -46,9 +46,7 @@ public class GeminiService(IHttpClientFactory httpClientFactory, IConfiguration 
         };
 
         var client = httpClientFactory.CreateClient();
-        // var url = $"{ApiBase}/{Model}:generateContent?key={_apiKey}";
-        var url =
-            "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=AIzaSyA3YN6nrJeJbaQM5469jD-hg0Am7hxbrF0";
+        var url = $"{ApiBase}/{Model}:generateContent?key={_apiKey}";
 
         using var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
         httpRequest.Headers.Add("x-goog-api-key", _apiKey);

@@ -19,7 +19,7 @@ function getMatchedUsers(answer) {
     return [];
   }
 
-  return answer.matched_users || answer.users || answer.user_ids || [];
+  return answer.matchedUsers || answer.matched_users || answer.users || answer.user_ids || [];
 }
 
 export default function GeminiQueryDashboard() {

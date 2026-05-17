@@ -133,9 +133,9 @@ function handleTrackingEvent(event) {
   const filtered = filterByConsent(event, consent);
   if (!filtered) return;
 
-  // Persist to SQLite outbox — survives crashes and network outages
-  const record = { userId, ...filtered, ts: Date.now() };
-  db.insertEvent(record.userId, filtered.type || 'unknown', record);
+  // Always use the real userId for coin tracking; anonymization only applies to content
+  const record = { user_id: userId, ...filtered, ts: Date.now() };
+  db.insertEvent(userId, filtered.type || 'unknown', record);
 }
 
 function filterByConsent(event, consent) {
@@ -147,7 +147,9 @@ function filterByConsent(event, consent) {
   if (!consent.shareWithNielsen) return null;
 
   if (consent.anonymousMode) {
-    return { ...event, userId: 'anon', url: anonymizeUrl(event.url) };
+    // Anonymize URL content only; user_id is kept real for coin tracking
+    const { userId, user_id, ...rest } = event;
+    return { ...rest, url: anonymizeUrl(event.url) };
   }
   return event;
 }
@@ -173,14 +175,20 @@ async function flushWorker() {
   if (pending.length === 0) return;
 
   const ids = pending.map((r) => r.id);
-  const batch = pending.map((r) => JSON.parse(r.payload));
+  const batch = pending.map((r) => {
+    const event = JSON.parse(r.payload);
+    // Ensure snake_case user_id for backend; fall back to the outbox row's user_id
+    if (!event.user_id) event.user_id = event.userId ?? r.user_id;
+    delete event.userId;
+    return event;
+  });
   try {
   const backendUrl = process.env.BACKEND_URL || 'http://localhost:8081/api/events';
   
   const res = await fetch(backendUrl, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json', 'X-Api-Key': '123' },
-  body: JSON.stringify({ events: batch }),
+  body: JSON.stringify(batch),
   signal: AbortSignal.timeout(5000),
   });
 
@@ -190,8 +198,10 @@ async function flushWorker() {
 
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
+  const userId = store.get('userId');
+  const userEntry = responseData.users?.find(u => u.userId === userId);
   const ratePerEvent = store.get('consent')?.anonymousMode ? 0.1 : 0.3;
-  const earned = responseData.coinsEarned || (batch.length * ratePerEvent);
+  const earned = userEntry?.points ?? (batch.length * ratePerEvent);
   const newCoins = parseFloat((store.get('coins') + earned).toFixed(4));
 
   db.markSent(ids);
