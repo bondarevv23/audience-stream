@@ -2,6 +2,7 @@ using System.Text.Json;
 using AudienceStream.Api;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,11 +18,16 @@ builder.Services.AddSingleton<EventService>();
 builder.Services.AddSingleton<GeminiService>();
 builder.Services.AddHttpClient();
 
+var postgresConnString = builder.Configuration["Postgres:ConnectionString"]
+    ?? "Host=localhost;Port=5432;Database=audience_stream;Username=admin;Password=supersecret";
+builder.Services.AddSingleton(_ => NpgsqlDataSource.Create(postgresConnString));
+builder.Services.AddSingleton<UserService>();
+
 var app = builder.Build();
 
 app.UseMiddleware<ApiKeyMiddleware>();
 
-app.MapPost("/api/events", async (HttpRequest request, EventService eventService) =>
+app.MapPost("/api/events", async (HttpRequest request, EventService eventService, UserService userService) =>
 {
     using var reader = new StreamReader(request.Body);
     var body = (await reader.ReadToEndAsync()).Trim();
@@ -52,7 +58,14 @@ app.MapPost("/api/events", async (HttpRequest request, EventService eventService
 
     await eventService.InsertBatchAsync(documents);
 
-    return Results.Ok(new { inserted = documents.Count });
+    var userDeltas = documents
+        .GroupBy(doc => doc.TryGetValue("user_id", out var uid) ? uid.AsString : null)
+        .Where(g => !string.IsNullOrEmpty(g.Key))
+        .ToDictionary(g => g.Key!, g => g.Count());
+
+    var users = await userService.AddPointsAsync(userDeltas);
+
+    return Results.Ok(new { inserted = documents.Count, users });
 });
 
 app.MapGet("/admin/events/recent", async (int? limit, EventService eventService) =>
@@ -115,5 +128,8 @@ app.MapPost("/admin/gemini-query", async (HttpRequest request, EventService even
 
 var eventService = app.Services.GetRequiredService<EventService>();
 await eventService.EnsureIndexesAsync();
+
+var userService = app.Services.GetRequiredService<UserService>();
+await userService.EnsureSchemaAsync();
 
 app.Run();
