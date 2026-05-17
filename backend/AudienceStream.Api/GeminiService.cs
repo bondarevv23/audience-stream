@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace AudienceStream.Api;
 
@@ -10,8 +11,8 @@ public class GeminiService(IHttpClientFactory httpClientFactory, IConfiguration 
     private readonly string _apiKey = configuration["Gemini:ApiKey"]
         ?? throw new InvalidOperationException("Gemini:ApiKey is not configured.");
 
-    private const string Model = "gemini-2.0-flash";
-    private const string ApiBase = "https://generativelanguage.googleapis.com/v1beta/models";
+    private const string Model = "gemini-2.5-flash";
+    private const string ApiBase = "https://generativelanguage.googleapis.com/v1/models/";
 
     public async Task<GeminiQueryResult> QueryAsync(string question, string eventsJson)
     {
@@ -41,12 +42,13 @@ public class GeminiService(IHttpClientFactory httpClientFactory, IConfiguration 
             contents = new[]
             {
                 new { parts = new[] { new { text = prompt } } }
-            },
-            generationConfig = new { responseMimeType = "application/json" }
+            }
         };
 
         var client = httpClientFactory.CreateClient();
-        var url = $"{ApiBase}/{Model}:generateContent";
+        // var url = $"{ApiBase}/{Model}:generateContent?key={_apiKey}";
+        var url =
+            "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=AIzaSyA3YN6nrJeJbaQM5469jD-hg0Am7hxbrF0";
 
         using var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
         httpRequest.Headers.Add("x-goog-api-key", _apiKey);
@@ -55,10 +57,13 @@ public class GeminiService(IHttpClientFactory httpClientFactory, IConfiguration 
             new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
 
         var httpResponse = await client.SendAsync(httpRequest);
-        httpResponse.EnsureSuccessStatusCode();
 
-        using var doc = await JsonDocument.ParseAsync(
-            await httpResponse.Content.ReadAsStreamAsync());
+        string responseBody = await httpResponse.Content.ReadAsStringAsync();
+        Console.WriteLine(responseBody);
+        httpResponse.EnsureSuccessStatusCode();
+        
+
+        using var doc = JsonDocument.Parse(responseBody);
 
         var text = doc.RootElement
             .GetProperty("candidates")[0]
@@ -67,7 +72,7 @@ public class GeminiService(IHttpClientFactory httpClientFactory, IConfiguration 
             .GetProperty("text")
             .GetString()!;
 
-        using var result = JsonDocument.Parse(text);
+        using var result = JsonDocument.Parse(ExtractJsonFromMarkdown(text));
         var root = result.RootElement;
 
         var summary = root.TryGetProperty("summary", out var s)
@@ -82,5 +87,18 @@ public class GeminiService(IHttpClientFactory httpClientFactory, IConfiguration 
             : [];
 
         return new GeminiQueryResult(summary, matchedUsers);
+    }
+    
+    static string ExtractJsonFromMarkdown(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input))
+            return input;
+        var match = Regex.Match(input, @"```(?:json)?\s*(.*?)\s*```", RegexOptions.Singleline | RegexOptions.IgnoreCase);
+
+        if (match.Success)
+        {
+            return match.Groups[1].Value.Trim();
+        }
+        return input.Trim();
     }
 }
